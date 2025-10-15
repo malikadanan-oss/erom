@@ -8,7 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
-    /* Ringkas: gaya asal anda dipadatkan sedikit */
     :root{--bg:#f6f8fb;--text:#111827;--muted:#6b7280;--primary:#2563eb;--ok:#16a34a;--warn:#f59e0b;--bad:#dc2626;--off:#9ca3af;--card:#fff;--ring:#e5e7eb}
     html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Oswald',Arial,sans-serif}
     .wrap{max-width:1150px;margin:18px auto;padding:12px}
@@ -62,6 +61,10 @@
     #ovSummaryList{columns:3; column-gap:20px}
     @media (max-width:900px){ #ovSummaryList{columns:1} }
     @media (max-width:960px){ .toolbar{grid-template-columns:1fr 1fr} }
+    /* Admin visibility */
+    #adminLoginBox{display:block}
+    #adminPanel{display:none}
+    .hidden{display:none !important}
   </style>
 </head>
 <body>
@@ -213,24 +216,37 @@
     <!-- Tab: Pentadbir -->
     <section id="tabAdmin" class="tabpane">
       <div class="card">
-        <div class="row" style="justify-content:space-between">
-          <div style="font-weight:600">Panel Pentadbir</div>
-          <div class="small" id="adminWho"></div>
-        </div>
-
-        <div class="row" style="margin-top:8px; gap:12px">
-          <div>
-            <label class="small">Pilih Bilik (Admin)</label><br>
-            <select id="adminRoom"><option value="">Sila Pilih Bilik</option></select>
+        <!-- Kotak Login sahaja pada awal -->
+        <div id="adminLoginBox">
+          <div class="row" style="justify-content:space-between">
+            <div style="font-weight:600">Panel Pentadbir</div>
+            <div class="small" id="adminWho">Belum log masuk</div>
           </div>
-          <div style="align-self:end; display:flex; gap:8px">
+          <div class="row" style="margin-top:8px; gap:12px">
             <button class="btn ghost" id="btnAdminLogin">Log Masuk</button>
-            <button class="btn ghost" id="btnAdminLoad" disabled>Muat Senarai</button>
-            <button class="btn" id="btnBulkCancel" style="display:none;background:#dc2626" disabled>Batalkan Terpilih</button>
           </div>
         </div>
 
-        <div id="adminList" style="margin-top:10px"></div>
+        <!-- Panel admin penuh, disorok sehingga login berjaya -->
+        <div id="adminPanel">
+          <div class="row" style="justify-content:space-between">
+            <div style="font-weight:600">Panel Pentadbir</div>
+            <div class="small" id="adminWho2">Akses: Pentadbir</div>
+          </div>
+
+          <div class="row" style="margin-top:8px; gap:12px">
+            <div>
+              <label class="small">Pilih Bilik (Admin)</label><br>
+              <select id="adminRoom"><option value="">Sila Pilih Bilik</option></select>
+            </div>
+            <div style="align-self:end; display:flex; gap:8px">
+              <button class="btn ghost" id="btnAdminLoad">Muat Senarai</button>
+              <button class="btn" id="btnBulkCancel" style="background:#dc2626">Batalkan Terpilih</button>
+            </div>
+          </div>
+
+          <div id="adminList" style="margin-top:10px"></div>
+        </div>
       </div>
     </section>
   </div>
@@ -238,27 +254,22 @@
 <script>
 (function(){
   // ====== KONFIGURASI API ======
-  const API_BASE = 'https://script.google.com/macros/s/AKfycbwnDjQu7YIzMKVK1gh1G2mJffxfhxsKBVQZB9ESngZ5xzX3ZubQLYAiw-odJC3KmebM/exec'; // contoh: https://script.google.com/macros/s/AKfycb.../exec
+  const API_BASE = 'https://script.google.com/macros/s/AKfycbwnDjQu7YIzMKVK1gh1G2mJffxfhxsKBVQZB9ESngZ5xzX3ZubQLYAiw-odJC3KmebM/exec';
 
-  // Panggilan GET tanpa preflight
   async function apiGet(action, params={}) {
     const q = new URLSearchParams({ action, ...params });
     const url = `${API_BASE}?${q.toString()}`;
     const res = await fetch(url, { method: 'GET' });
     return res.ok ? res.json() : null;
   }
-  // Panggilan POST tanpa header khas (elak preflight): body JSON + Content-Type default oleh fetch
   async function apiPost(action, bodyObj={}) {
-    const res = await fetch(API_BASE, {
-      method: 'POST',
-      body: JSON.stringify({ action, ...bodyObj })
-    });
+    const res = await fetch(API_BASE, { method: 'POST', body: JSON.stringify({ action, ...bodyObj }) });
     return res.ok ? res.json() : null;
   }
 
   const $ = (id) => document.getElementById(id);
 
-  /* ===== Data Statik: Nama mengikut Sektor (boleh ubah ikut keperluan) ===== */
+  /* ===== Data Statik: Nama mengikut Sektor (boleh ubah) ===== */
   const NAMA_MENGIKUT_SEKTOR = {
     "Pengurusan Tertinggi": ["Tuan Haji Ab Malek Bin Kasim (B.K.T)","En. Azhar Bin Md Nor (B.C.M)","En. Abd Jabar Bin Md Yusup (P.J.K)","En. Muhammad Hamka Bin Dollah","En. Bashir Bin Abu Bakar"],
     "School Improvement Partner (SIP+)": ["En. Amran Bin Abdul Sukor","En. Abd. Razak Bin Adam","Pn. Rafidah Binti Abd Rahim"],
@@ -268,7 +279,7 @@
     "Sektor Pembangunan Murid": ["En. Wan Mohd Syarifuddin Bin Wan Hasan","En. Ismail Asib Bin Md Amin","En. Mohammad Misbahuddin Bin Abu Mansor"],
     "Sektor Pentaksiran & Peperiksaan": ["En. Mohd Rahdi Bin Ahmad","En. Zaidi Bin Jaafar"],
     "Psikologi & Kaunseling": ["En. Mohd Saberi Bin Minhat @ Bulat"],
-    "Sektor Pengurusan": ["Pn. Asmalaili Binti Ahmad Sanusi","Pn. Fahizah Binti Mohd Yusoff","Cik Nurul Jannah Binti Mohd Nasir","Pn. Nor Fizana Binti Md Idris","Pn. Nurul Ain Binti Mohd Zaini","Pn. Intan Liyana Binti Khamis","Pn. Habsah Binti Maidin","En. Md Zaki Zabani Bin Mohd Nor","Pn. Faizzah Binti Zulkefli","En. Mustafa Bin Musa","En. Rozamni Bin Muhamad","Pn. Katijah Binti Mohd Ali","En. Zasmeini Bin Zaimun","Pn. Suzanawati Binti Mohd Said","Pn. Kamsiah Binti Hashim","Pn. Hartiniwatie Binti Abang","En. Azharul Nizam Bin Othmawi","Pn. Rosedah Binti Muhamad","Pn. Noor 'Izzati Binti Johari","En. Mohd Arifin Bin Kamarudin","Pn. Siti Rajunah Binti Ab. Rahman","Pn. Fairus Binti Zainal","Pn. Hanizah Binti Minhat","Cik Siti Aishah Binti Md Hassan","Cik Nurain Nabihah Binti Nasaruddin","En. Mohd Fauzi Bin Mohamed Ali","En. Muhammad Nasiruddin Bin Muei","En. Muhammad Fadhli Mustaqim Bin Mazlan","En. Muhammad Afiq Bin Yang Rosdi","Pn. Haslina Binti Beeran Kutty"]
+    "Sektor Pengurusan": ["Pn. Asmalaili Binti Ahmad Sanusi","Pn. Fahizah Binti Mohd Yusoff","Cik Nurul Jannah Binti Mohd Nasir","Pn. Nor Fizana Binti Md Idris","Pn. Nurul Ain Binti Mohd Zaini","Pn. Intan Liyana Binti Khamis","Pn. Habsah Binti Maidin","En. Md Zaki Zabani Bin Mohd Nor","Pn. Faizzah Binti Zulkefli","En. Mustafa Bin Musa","En. Rozamni Bin Muhamad","Pn. Katijah Binti Mohd Ali","En. Zasmeini Bin Zaimun","Pn. Suzanawati Binti Mohd Said","Pn. Kamsiah Binti Hashim","Pn. Hartiniwatie Binti Abang","En. Azharul Nizam Bin Othmawi","Pn. Rosedah Binti Muhamad","Pn. Noor 'Izzati Binti Johari","En. Mohd Arifin Bin Kamarudin","Pn. Siti Rajunah Binti Ab. Rahman","Pn. Fairus Binti Zainal","En. Hanizah Binti Minhat","Cik Siti Aishah Binti Md Hassan","Cik Nurain Nabihah Binti Nasaruddin","En. Mohd Fauzi Bin Mohamed Ali","En. Muhammad Nasiruddin Bin Muei","En. Muhammad Fadhli Mustaqim Bin Mazlan","En. Muhammad Afiq Bin Yang Rosdi","Pn. Haslina Binti Beeran Kutty"]
   };
 
   // ====== STATE ======
@@ -285,21 +296,20 @@
     ov.year = now.getFullYear(); ov.month = now.getMonth()+1;
 
     setupUI();
-    // init data asas
     const boot = await apiGet('init');
     if (!boot || !boot.ok) { return Swal.fire('Ralat', 'Gagal memuat data asas aplikasi.', 'error'); }
     ALL_ROOMS = boot.rooms || [];
     hydrateSelect($('roomSelect'), ['Sila Pilih Bilik', ...ALL_ROOMS], true);
-    hydrateSelect($('adminRoom'), ['Sila Pilih Bilik', ...ALL_ROOMS], true);
     hydrateSelect($('category'), boot.categories || []);
     hydrateSelect($('sektor'), ['— Pilih Sektor —', ...(boot.sektor||[])], true);
+    hydrateSelect($('adminRoom'), ['Sila Pilih Bilik', ...ALL_ROOMS], true);
 
     // cuba sahkan admin jika kata laluan telah disimpan
     if (ADMIN_PASSWORD) {
       const chk = await apiGet('adminCheck', { adminPassword: ADMIN_PASSWORD });
       state.isAdmin = !!(chk && chk.ok && chk.isAdmin);
-      updateAdminUI();
     }
+    updateAdminVisibility();
 
     populateNamaOptions();
     toggleCalendarHint();
@@ -326,23 +336,21 @@
     $('grid').addEventListener('click', onGridClick);
     $('sektor').addEventListener('change', populateNamaOptions);
 
-    // navigator bulan
     setupMonthNavigator({ stateObj: state, prevBtn:'btnPrev', nextBtn:'btnNext', label:'monthLabel', onShift: ()=>{ if(state.room) refreshMonth(); } });
     setupMonthNavigator({ stateObj: ov, prevBtn:'ovPrev', nextBtn:'ovNext', label:'ovMonthLabel', onShift: loadOverview });
 
-    // overview view switch
     $('btnViewCalendar').addEventListener('click', ()=>switchOverviewView('calendar'));
     $('btnViewTable').addEventListener('click', ()=>switchOverviewView('table'));
 
-    // admin login + actions
     $('btnAdminLogin').addEventListener('click', onAdminLogin);
     $('btnAdminLoad').addEventListener('click', loadAdminUpcoming);
     $('btnBulkCancel').addEventListener('click', onBulkCancel);
   }
 
-  function updateAdminUI(){
-    $('btnAdminLoad').disabled = !state.isAdmin;
-    $('btnBulkCancel').disabled = !state.isAdmin;
+  function updateAdminVisibility(){
+    // Paparkan hanya satu daripada dua: kotak login atau panel admin penuh
+    $('adminLoginBox').style.display = state.isAdmin ? 'none' : 'block';
+    $('adminPanel').style.display = state.isAdmin ? 'block' : 'none';
     $('adminWho').textContent = state.isAdmin ? 'Akses: Pentadbir' : 'Belum log masuk';
   }
 
@@ -361,7 +369,7 @@
       ADMIN_PASSWORD = pw;
       localStorage.setItem('erom_admin_pw', pw);
       state.isAdmin = true;
-      updateAdminUI();
+      updateAdminVisibility();
       Swal.fire('Berjaya', 'Akses pentadbir diaktifkan.', 'success');
     } else {
       Swal.fire('Ralat', 'Kata laluan salah.', 'error');
@@ -371,8 +379,8 @@
   function switchTab(name){
     const map={tempahan:{btn:'tabTempahanBtn',pane:'tabTempahan'},kalendar:{btn:'tabKalendarBtn',pane:'tabKalendar'},admin:{btn:'tabAdminBtn',pane:'tabAdmin'}};
     Object.keys(map).forEach(k=>{ const {btn,pane}=map[k]; $(btn).classList.toggle('active',k===name); $(pane).classList.toggle('active',k===name); });
-    if(name==='admin' && state.isAdmin && $('adminRoom').value){ loadAdminUpcoming(); }
     if(name==='kalendar' && (!ov.days || !ov.days.length)){ loadOverview(); }
+    if(name==='admin'){ updateAdminVisibility(); } // tegaskan semula
   }
 
   function setupMonthNavigator({ stateObj, prevBtn, nextBtn, label, onShift }) {
@@ -412,7 +420,7 @@
     state.days=[]; $('grid').innerHTML=''; document.querySelectorAll('.tile.sel').forEach(el=>el.classList.remove('sel'));
     $('roomSelect').value=''; state.room=''; toggleCalendarHint();
     resetBookingForm(true);
-    if(state.isAdmin){ $('adminRoom').value=''; $('adminList').innerHTML=''; $('btnBulkCancel').style.display='none'; }
+    $('adminRoom').value=''; $('adminList').innerHTML='';
     switchTab('tempahan'); window.scrollTo({top:0,behavior:'smooth'});
   }
   function resetBookingForm(clearFields){
@@ -584,9 +592,7 @@
 
   // ====== OVERVIEW ======
   async function loadOverview(){
-    Swal.fire({title:'Memuat rumusan bulanan...',allowOutsideClick:false,didOpen:()=>Swal.showLoading()});
     const res = await apiGet('getMonthRoomsOverview', { year: ov.year, month: ov.month });
-    Swal.close();
     if(!res || !res.ok){ return Swal.fire('Ralat', res?.error || 'Gagal memuat rumusan', 'error'); }
     ov.days = Array.isArray(res.days) ? res.days : [];
     renderOverview();
@@ -661,13 +667,13 @@
   // ====== ADMIN ======
   async function loadAdminUpcoming(){
     const room = $('adminRoom').value;
-    if(!room){ $('adminList').innerHTML='<div class="small">Sila pilih bilik untuk memuatkan senarai tempahan akan datang.</div>'; $('btnBulkCancel').style.display='none'; return; }
+    if(!room){ $('adminList').innerHTML='<div class="small">Sila pilih bilik untuk memuatkan senarai tempahan akan datang.</div>'; return; }
     if(!state.isAdmin){ return Swal.fire('Akses ditolak','Sila log masuk pentadbir dahulu.','warning'); }
     $('adminList').innerHTML='<div class="small">Memuatkan data...</div>';
     const res = await apiGet('listUpcomingBookings', { room, adminPassword: ADMIN_PASSWORD });
     if(!res || !res.ok){ $('adminList').innerHTML='<div class="small" style="color:#dc2626">Gagal memuatkan data.</div>'; return; }
     const items = res.items || [];
-    if(!items.length){ $('adminList').innerHTML='<div class="small">Tiada tempahan akan datang untuk bilik ini.</div>'; $('btnBulkCancel').style.display='none'; return; }
+    if(!items.length){ $('adminList').innerHTML='<div class="small">Tiada tempahan akan datang untuk bilik ini.</div>'; return; }
     const html = ['<table><thead><tr><th style="width:34px"><input type="checkbox" onchange="toggleAllCheckboxes(this.checked)"></th><th style="width:120px">Tarikh</th><th style="width:120px">Masa</th><th>Bilik</th><th style="width:160px">Kategori</th><th>Tujuan</th><th style="width:160px">Penempah</th></tr></thead><tbody>'];
     for(const it of items){
       html.push(`<tr>
@@ -682,7 +688,6 @@
     }
     html.push('</tbody></table>');
     $('adminList').innerHTML = html.join('');
-    $('btnBulkCancel').style.display='inline-block';
   }
 
   window.toggleAllCheckboxes = (checked) => {
