@@ -70,7 +70,7 @@
     <div class="tabs">
       <button id="tabTempahanBtn" class="tabbtn active">Tempahan</button>
       <button id="tabKalendarBtn" class="tabbtn">Rumusan Tempahan</button>
-      <button id="tabAdminBtn" class="tabbtn" style="display:none">Pentadbir</button>
+      <button id="tabAdminBtn" class="tabbtn">Pentadbir</button>
     </div>
 
     <section id="tabTempahan" class="tabpane active">
@@ -246,6 +246,12 @@
    * Fungsi ini kini menggunakan `fetch` untuk berkomunikasi dengan API.
    */
   async function callApi(action, payload = {}) {
+    // Tambah kata laluan admin dari sessionStorage jika ada
+    const adminSecret = sessionStorage.getItem('adminSecret');
+    if (adminSecret) {
+      payload.secret = adminSecret;
+    }
+
     const isReadOperation = ['init', 'getMonthView', 'getMonthRoomsOverview', 'listUpcomingBookings'].includes(action);
     let response;
 
@@ -290,7 +296,7 @@
     "Sektor Pengurusan": ["Pn. Asmalaili Binti Ahmad Sanusi","Pn. Fahizah Binti Mohd Yusoff","Cik Nurul Jannah Binti Mohd Nasir","Pn. Nor Fizana Binti Md Idris","Pn. Nurul Ain Binti Mohd Zaini","Pn. Intan Liyana Binti Khamis","Pn. Habsah Binti Maidin","En. Md Zaki Zabani Bin Mohd Nor","Pn. Faizzah Binti Zulkefli","En. Mustafa Bin Musa","En. Rozamni Bin Muhamad","Pn. Katijah Binti Mohd Ali","En. Zasmeini Bin Zaimun","Pn. Suzanawati Binti Mohd Said","Pn. Kamsiah Binti Hashim","Pn. Hartiniwatie Binti Abang","En. Azharul Nizam Bin Othmawi","Pn. Rosedah Binti Muhamad","Pn. Noor 'Izzati Binti Johari","En. Mohd Arifin Bin Kamarudin","Pn. Siti Rajunah Binti Ab. Rahman","Pn. Fairus Binti Zainal","Pn. Hanizah Binti Minhat","Cik Siti Aishah Binti Md Hassan","Cik Nurain Nabihah Binti Nasaruddin","En. Mohd Fauzi Bin Mohamed Ali","En. Muhammad Nasiruddin Bin Muei","En. Muhammad Fadhli Mustaqim Bin Mazlan","En. Muhammad Afiq Bin Yang Rosdi","Pn. Haslina Binti Beeran Kutty"]
   };
 
-  let state = { email:'', isAdmin:false, year:null, month:null, room:'', days:[], selectedDate:null, range:{from:null,to:null}, rangeMode:false };
+  let state = { year:null, month:null, room:'', days:[], selectedDate:null, range:{from:null,to:null}, rangeMode:false };
   let ov = { year:null, month:null, days:[], view:'calendar' };
   let ALL_ROOMS = [];
 
@@ -300,10 +306,9 @@
     ov.year = now.getFullYear(); ov.month = now.getMonth()+1;
     setupUI();
     try {
+      // Fungsi init tidak lagi mengembalikan status admin
       const boot = await callApi('init');
       if (!boot || !boot.ok) throw new Error("Gagal memuat data awal.");
-      state.email = boot.auth?.email || '';
-      state.isAdmin = !!boot.auth?.isAdmin;
       ALL_ROOMS = boot.rooms || [];
       hydrateSelect($('roomSelect'), ['Sila Pilih Bilik', ...ALL_ROOMS], true);
       hydrateSelect($('adminRoom'), ['Sila Pilih Bilik', ...ALL_ROOMS], true);
@@ -313,7 +318,6 @@
         Swal.fire('Ralat Kritikal', `Gagal memuatkan data asas aplikasi. Sila muat semula halaman. Butiran: ${e.message}`, 'error');
         return;
     }
-    if(state.isAdmin){ $('tabAdminBtn').style.display='inline-block'; $('adminWho').textContent=`Log masuk sebagai: ${state.email}`; }
     populateNamaOptions();
     toggleCalendarHint();
     await loadOverview();
@@ -324,7 +328,7 @@
     $('ovMonthLabel').textContent = formatMonthLabel(ov.year, ov.month);
     $('tabTempahanBtn').addEventListener('click', ()=> switchTab('tempahan'));
     $('tabKalendarBtn').addEventListener('click', ()=> switchTab('kalendar'));
-    $('tabAdminBtn').addEventListener('click', ()=> switchTab('admin'));
+    $('tabAdminBtn').addEventListener('click', ()=> switchTab('admin')); // Event untuk pengesahan
     $('roomSelect').addEventListener('change', onRoomSelectChange);
     $('btnRefresh').addEventListener('click', resetUI);
     $('btnBook').addEventListener('click', onBook);
@@ -343,11 +347,49 @@
     $('btnBulkCancel').addEventListener('click', onBulkCancel);
   }
 
-  function switchTab(name){
+  async function switchTab(name){
+    if (name === 'admin' && !sessionStorage.getItem('adminSecret')) {
+      await promptForAdminSecret();
+      // Jangan teruskan jika pengguna batal atau kata laluan salah
+      if (!sessionStorage.getItem('adminSecret')) {
+        switchTab('tempahan'); // Kembali ke tab asal
+        return;
+      }
+    }
+
     const map={tempahan:{btn:'tabTempahanBtn',pane:'tabTempahan'},kalendar:{btn:'tabKalendarBtn',pane:'tabKalendar'},admin:{btn:'tabAdminBtn',pane:'tabAdmin'}};
     Object.keys(map).forEach(k=>{ const {btn,pane}=map[k]; $(btn).classList.toggle('active',k===name); $(pane).classList.toggle('active',k===name); });
-    if(name==='admin' && state.isAdmin && $('adminRoom').value){ loadAdminUpcoming(); }
+    
+    if(name==='admin' && sessionStorage.getItem('adminSecret') && $('adminRoom').value){ loadAdminUpcoming(); }
     if(name==='kalendar' && (!ov.days || !ov.days.length)){ loadOverview(); }
+  }
+
+  async function promptForAdminSecret() {
+    const { value: secret } = await Swal.fire({
+      title: 'Akses Pentadbir',
+      input: 'password',
+      inputPlaceholder: 'Masukkan kata laluan pentadbir',
+      inputAttributes: { autocapitalize: 'off', autocorrect: 'off' },
+      showCancelButton: true,
+      confirmButtonText: 'Log Masuk',
+      cancelButtonText: 'Batal',
+      showLoaderOnConfirm: true,
+      preConfirm: async (password) => {
+        try {
+          // Hantar kata laluan untuk pengesahan di backend
+          await callApi('verifyAdmin', { secret: password });
+          return password; // Jika berjaya, pulangkan kata laluan
+        } catch (error) {
+          Swal.showValidationMessage(`Pengesahan gagal: ${error.message}`);
+        }
+      },
+      allowOutsideClick: () => !Swal.isLoading()
+    });
+
+    if (secret) {
+      sessionStorage.setItem('adminSecret', secret);
+      Swal.fire({ icon: 'success', title: 'Log masuk berjaya!', timer: 1500, showConfirmButton: false });
+    }
   }
   
   function setupMonthNavigator({ stateObj, prevBtn, nextBtn, label, onShift }) {
@@ -377,7 +419,8 @@
     state.days=[]; $('grid').innerHTML=''; document.querySelectorAll('.tile.sel').forEach(el=>el.classList.remove('sel'));
     $('roomSelect').value=''; state.room=''; toggleCalendarHint();
     resetBookingForm(true);
-    if(state.isAdmin){ $('adminRoom').value=''; $('adminList').innerHTML=''; $('btnBulkCancel').style.display='none'; }
+    // Log keluar admin apabila segar semula
+    sessionStorage.removeItem('adminSecret');
     switchTab('tempahan'); window.scrollTo({top:0,behavior:'smooth'});
   }
 
@@ -736,3 +779,4 @@
 </script>
 </body>
 </html>
+
