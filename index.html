@@ -1,6 +1,5 @@
-<!-- index.html (Frontend statik untuk GitHub Pages) -->
 <!DOCTYPE html>
-<html>
+<html lang="ms">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
@@ -57,14 +56,12 @@
     .req::after{content:" *"; color:#dc2626}
     .invalid{box-shadow:0 0 0 3px rgba(220,38,38,.18) !important; border-color:#dc2626 !important}
     #ovSummaryWrap{margin-top:12px;border-top:1px dashed var(--ring);padding-top:10px}
-    #ovSummaryWrap h4{margin:0 0 6px 0;font-size:1rem}
     #ovSummaryList{columns:3; column-gap:20px}
     @media (max-width:900px){ #ovSummaryList{columns:1} }
     @media (max-width:960px){ .toolbar{grid-template-columns:1fr 1fr} }
-    /* Admin visibility */
+    /* Admin: kunci paparan */
     #adminLoginBox{display:block}
     #adminPanel{display:none}
-    .hidden{display:none !important}
   </style>
 </head>
 <body>
@@ -199,7 +196,6 @@
             <div class="grid" id="ovGrid"></div>
           </div>
           <div id="ovSummaryWrap" style="display:none">
-            <h4>Rumusan Bulan Ini</h4>
             <div id="ovSummaryList" class="small"></div>
           </div>
         </div>
@@ -216,7 +212,7 @@
     <!-- Tab: Pentadbir -->
     <section id="tabAdmin" class="tabpane">
       <div class="card">
-        <!-- Kotak Login sahaja pada awal -->
+        <!-- Login sahaja pada awal -->
         <div id="adminLoginBox">
           <div class="row" style="justify-content:space-between">
             <div style="font-weight:600">Panel Pentadbir</div>
@@ -227,11 +223,11 @@
           </div>
         </div>
 
-        <!-- Panel admin penuh, disorok sehingga login berjaya -->
+        <!-- Panel admin penuh, dipaparkan selepas login -->
         <div id="adminPanel">
           <div class="row" style="justify-content:space-between">
             <div style="font-weight:600">Panel Pentadbir</div>
-            <div class="small" id="adminWho2">Akses: Pentadbir</div>
+            <div class="small">Akses: Pentadbir</div>
           </div>
 
           <div class="row" style="margin-top:8px; gap:12px">
@@ -253,13 +249,12 @@
 
 <script>
 (function(){
-  // ====== KONFIGURASI API ======
+  // URL Web App GAS anda
   const API_BASE = 'https://script.google.com/macros/s/AKfycbwnDjQu7YIzMKVK1gh1G2mJffxfhxsKBVQZB9ESngZ5xzX3ZubQLYAiw-odJC3KmebM/exec';
 
   async function apiGet(action, params={}) {
     const q = new URLSearchParams({ action, ...params });
-    const url = `${API_BASE}?${q.toString()}`;
-    const res = await fetch(url, { method: 'GET' });
+    const res = await fetch(`${API_BASE}?${q.toString()}`, { method: 'GET' });
     return res.ok ? res.json() : null;
   }
   async function apiPost(action, bodyObj={}) {
@@ -269,7 +264,7 @@
 
   const $ = (id) => document.getElementById(id);
 
-  /* ===== Data Statik: Nama mengikut Sektor (boleh ubah) ===== */
+  // Nama ikut sektor (boleh ubah)
   const NAMA_MENGIKUT_SEKTOR = {
     "Pengurusan Tertinggi": ["Tuan Haji Ab Malek Bin Kasim (B.K.T)","En. Azhar Bin Md Nor (B.C.M)","En. Abd Jabar Bin Md Yusup (P.J.K)","En. Muhammad Hamka Bin Dollah","En. Bashir Bin Abu Bakar"],
     "School Improvement Partner (SIP+)": ["En. Amran Bin Abdul Sukor","En. Abd. Razak Bin Adam","Pn. Rafidah Binti Abd Rahim"],
@@ -282,11 +277,11 @@
     "Sektor Pengurusan": ["Pn. Asmalaili Binti Ahmad Sanusi","Pn. Fahizah Binti Mohd Yusoff","Cik Nurul Jannah Binti Mohd Nasir","Pn. Nor Fizana Binti Md Idris","Pn. Nurul Ain Binti Mohd Zaini","Pn. Intan Liyana Binti Khamis","Pn. Habsah Binti Maidin","En. Md Zaki Zabani Bin Mohd Nor","Pn. Faizzah Binti Zulkefli","En. Mustafa Bin Musa","En. Rozamni Bin Muhamad","Pn. Katijah Binti Mohd Ali","En. Zasmeini Bin Zaimun","Pn. Suzanawati Binti Mohd Said","Pn. Kamsiah Binti Hashim","Pn. Hartiniwatie Binti Abang","En. Azharul Nizam Bin Othmawi","Pn. Rosedah Binti Muhamad","Pn. Noor 'Izzati Binti Johari","En. Mohd Arifin Bin Kamarudin","Pn. Siti Rajunah Binti Ab. Rahman","Pn. Fairus Binti Zainal","En. Hanizah Binti Minhat","Cik Siti Aishah Binti Md Hassan","Cik Nurain Nabihah Binti Nasaruddin","En. Mohd Fauzi Bin Mohamed Ali","En. Muhammad Nasiruddin Bin Muei","En. Muhammad Fadhli Mustaqim Bin Mazlan","En. Muhammad Afiq Bin Yang Rosdi","Pn. Haslina Binti Beeran Kutty"]
   };
 
-  // ====== STATE ======
+  // State
   let state = { isAdmin:false, year:null, month:null, room:'', days:[], selectedDate:null, range:{from:null,to:null}, rangeMode:false };
   let ov = { year:null, month:null, days:[], view:'calendar' };
   let ALL_ROOMS = [];
-  let ADMIN_PASSWORD = localStorage.getItem('erom_admin_pw') || '';
+  let ADMIN_PASSWORD = ''; // tidak auto-login untuk elak paparan terbuka
 
   window.addEventListener('load', bootstrap);
 
@@ -304,19 +299,15 @@
     hydrateSelect($('sektor'), ['— Pilih Sektor —', ...(boot.sektor||[])], true);
     hydrateSelect($('adminRoom'), ['Sila Pilih Bilik', ...ALL_ROOMS], true);
 
-    // cuba sahkan admin jika kata laluan telah disimpan
-    if (ADMIN_PASSWORD) {
-      const chk = await apiGet('adminCheck', { adminPassword: ADMIN_PASSWORD });
-      state.isAdmin = !!(chk && chk.ok && chk.isAdmin);
-    }
-    updateAdminVisibility();
+    // Sentiasa mula dalam keadaan terkunci (tiada auto-unlock dari localStorage)
+    lockAdmin();
 
     populateNamaOptions();
     toggleCalendarHint();
     await loadOverview();
   }
 
-  // ====== UI & EVENT ======
+  /* UI asas */
   function setupUI(){
     $('monthLabel').textContent = formatMonthLabel(state.year, state.month);
     $('ovMonthLabel').textContent = formatMonthLabel(ov.year, ov.month);
@@ -347,11 +338,17 @@
     $('btnBulkCancel').addEventListener('click', onBulkCancel);
   }
 
-  function updateAdminVisibility(){
-    // Paparkan hanya satu daripada dua: kotak login atau panel admin penuh
-    $('adminLoginBox').style.display = state.isAdmin ? 'none' : 'block';
-    $('adminPanel').style.display = state.isAdmin ? 'block' : 'none';
-    $('adminWho').textContent = state.isAdmin ? 'Akses: Pentadbir' : 'Belum log masuk';
+  function lockAdmin(){
+    state.isAdmin = false;
+    ADMIN_PASSWORD = '';
+    $('adminLoginBox').style.display = 'block';
+    $('adminPanel').style.display = 'none';
+    $('adminWho').textContent = 'Belum log masuk';
+  }
+  function unlockAdmin(){
+    state.isAdmin = true;
+    $('adminLoginBox').style.display = 'none';
+    $('adminPanel').style.display = 'block';
   }
 
   async function onAdminLogin(){
@@ -366,10 +363,8 @@
     if (!pw) return;
     const chk = await apiGet('adminCheck', { adminPassword: pw });
     if (chk && chk.ok && chk.isAdmin) {
-      ADMIN_PASSWORD = pw;
-      localStorage.setItem('erom_admin_pw', pw);
-      state.isAdmin = true;
-      updateAdminVisibility();
+      ADMIN_PASSWORD = pw; // tidak simpan ke localStorage
+      unlockAdmin();
       Swal.fire('Berjaya', 'Akses pentadbir diaktifkan.', 'success');
     } else {
       Swal.fire('Ralat', 'Kata laluan salah.', 'error');
@@ -380,7 +375,6 @@
     const map={tempahan:{btn:'tabTempahanBtn',pane:'tabTempahan'},kalendar:{btn:'tabKalendarBtn',pane:'tabKalendar'},admin:{btn:'tabAdminBtn',pane:'tabAdmin'}};
     Object.keys(map).forEach(k=>{ const {btn,pane}=map[k]; $(btn).classList.toggle('active',k===name); $(pane).classList.toggle('active',k===name); });
     if(name==='kalendar' && (!ov.days || !ov.days.length)){ loadOverview(); }
-    if(name==='admin'){ updateAdminVisibility(); } // tegaskan semula
   }
 
   function setupMonthNavigator({ stateObj, prevBtn, nextBtn, label, onShift }) {
@@ -404,8 +398,9 @@
   }
   function populateNamaOptions(){
     const sekVal=$('sektor').value, namaSel=$('nama'); namaSel.innerHTML='';
-    if(!sekVal || !NAMA_MENGIKUT_SEKTOR[sekVal]){ namaSel.appendChild(new Option('— Sila pilih sektor dahulu —','')); namaSel.disabled=true; return; }
-    namaSel.disabled=false; namaSel.appendChild(new Option('— Pilih nama —','')); NAMA_MENGIKUT_SEKTOR[sekVal].forEach(n=> namaSel.appendChild(new Option(n,n)));
+    const list=NAMA_MENGIKUT_SEKTOR[sekVal];
+    if(!sekVal || !list){ namaSel.appendChild(new Option('— Sila pilih sektor dahulu —','')); namaSel.disabled=true; return; }
+    namaSel.disabled=false; namaSel.appendChild(new Option('— Pilih nama —','')); list.forEach(n=> namaSel.appendChild(new Option(n,n)));
   }
   function toggleCalendarHint(){ $('noRoomHint').style.display = state.room ? 'none' : 'block'; }
 
@@ -421,6 +416,7 @@
     $('roomSelect').value=''; state.room=''; toggleCalendarHint();
     resetBookingForm(true);
     $('adminRoom').value=''; $('adminList').innerHTML='';
+    lockAdmin(); // keluar dari admin bila reset
     switchTab('tempahan'); window.scrollTo({top:0,behavior:'smooth'});
   }
   function resetBookingForm(clearFields){
@@ -448,12 +444,10 @@
     highlightRangeTiles(); updateRangeCounter();
   }
 
-  // ====== KALENDAR BILIK ======
+  /* Kalendar bilik */
   async function refreshMonth(){
     if(!state.room){ toggleCalendarHint(); return; }
-    Swal.fire({title:'Memuat data kalendar...',allowOutsideClick:false,didOpen:()=>Swal.showLoading()});
     const res = await apiGet('getMonthView', { room: state.room, year: state.year, month: state.month });
-    Swal.close();
     if(!res||!res.ok){ return Swal.fire('Ralat', res?.error || 'Gagal memuat data kalendar', 'error'); }
     state.days=res.days||[];
     renderCalendar(); highlightSelectedTile(); highlightRangeTiles(); updateRangeCounter();
@@ -548,7 +542,7 @@
   }
   function updateRangeCounter(){ if(!state.rangeMode){ $('rangeCounter').textContent=''; return;} const n=countWorkingDaysInRange(state.range.from,state.range.to); $('rangeCounter').textContent=`Akan ditempah: ${n} hari bekerja`; }
 
-  // ====== TEMPAHAN ======
+  /* Tempahan */
   async function onBook(){
     const inputs = {
       room: $('roomSelect').value, start: $('startTime').value, end: $('endTime').value,
@@ -563,7 +557,6 @@
     if(!inputs.nama){ markInvalid($('nama')); return Swal.fire('Peringatan','Sila pilih nama penempah.','warning'); }
 
     $('btnBook').disabled = true;
-    Swal.fire({title:'Merekod tempahan...',allowOutsideClick:false,didOpen:()=>Swal.showLoading()});
     try {
       let res;
       if (state.rangeMode) {
@@ -590,7 +583,7 @@
     }
   }
 
-  // ====== OVERVIEW ======
+  /* Overview */
   async function loadOverview(){
     const res = await apiGet('getMonthRoomsOverview', { year: ov.year, month: ov.month });
     if(!res || !res.ok){ return Swal.fire('Ralat', res?.error || 'Gagal memuat rumusan', 'error'); }
@@ -664,11 +657,11 @@
     tbody.appendChild(frag);
   }
 
-  // ====== ADMIN ======
+  /* Admin */
   async function loadAdminUpcoming(){
     const room = $('adminRoom').value;
-    if(!room){ $('adminList').innerHTML='<div class="small">Sila pilih bilik untuk memuatkan senarai tempahan akan datang.</div>'; return; }
     if(!state.isAdmin){ return Swal.fire('Akses ditolak','Sila log masuk pentadbir dahulu.','warning'); }
+    if(!room){ $('adminList').innerHTML='<div class="small">Sila pilih bilik untuk memuatkan senarai tempahan akan datang.</div>'; return; }
     $('adminList').innerHTML='<div class="small">Memuatkan data...</div>';
     const res = await apiGet('listUpcomingBookings', { room, adminPassword: ADMIN_PASSWORD });
     if(!res || !res.ok){ $('adminList').innerHTML='<div class="small" style="color:#dc2626">Gagal memuatkan data.</div>'; return; }
@@ -695,6 +688,7 @@
   };
 
   async function onBulkCancel(){
+    if(!state.isAdmin){ return Swal.fire('Akses ditolak','Sila log masuk pentadbir dahulu.','warning'); }
     const checks=[...document.querySelectorAll('.chkCancel:checked')];
     if(!checks.length) return Swal.fire('Makluman','Tiada tempahan dipilih untuk dibatalkan.','info');
     const ids = checks.map(x=>x.dataset.id);
@@ -708,13 +702,12 @@
     await loadOverview();
   }
 
-  // ====== UTILITI ======
+  /* Utiliti */
   function truncate(s, n){ return s?.length>n ? s.slice(0,n-1)+'…' : s; }
   function escapeHtml(str) { return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
   function toYMDLocal(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
   function parseYMDToLocal(ymd){ const [y,m,d]=ymd.split('-').map(Number); return new Date(y, m-1, d); }
   function addDaysYMD(ymd, n){ const dt=parseYMDToLocal(ymd); dt.setDate(dt.getDate()+n); return toYMDLocal(dt); }
-  function weekdayOfYMD(ymd){ return parseYMDToLocal(ymd).getDay(); }
   function countWorkingDaysInRange(from,to){
     if(!from||!to) return 0; let d = from, n = 0;
     while (d <= to){
