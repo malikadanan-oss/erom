@@ -74,7 +74,6 @@
       <button id="tabAdminBtn" class="tabbtn">Pentadbir</button>
     </div>
 
-    <!-- Tab: Tempahan -->
     <section id="tabTempahan" class="tabpane active">
       <div class="card toolbar">
         <div>
@@ -168,7 +167,6 @@
       </div>
     </section>
 
-    <!-- Tab: Rumusan -->
     <section id="tabKalendar" class="tabpane">
       <div class="card toolbar">
         <div class="small" style="font-weight:600">Rumusan Semua Bilik (Read-only)</div>
@@ -209,10 +207,8 @@
       </div>
     </section>
 
-    <!-- Tab: Pentadbir -->
     <section id="tabAdmin" class="tabpane">
       <div class="card">
-        <!-- Login dahulu -->
         <div id="adminLoginBox">
           <div class="row" style="justify-content:space-between">
             <div style="font-weight:600">Panel Pentadbir</div>
@@ -223,7 +219,6 @@
           </div>
         </div>
 
-        <!-- Panel admin selepas login -->
         <div id="adminPanel">
           <div class="row" style="justify-content:space-between">
             <div style="font-weight:600">Panel Pentadbir</div>
@@ -531,6 +526,18 @@
   function onGridClick(ev){
     const tile = ev.target.closest('.tile');
     if(!tile || tile.classList.contains('disabled')) return;
+
+    // --- MULA PENAMBAHBAIKAN ---
+    // Dapatkan data untuk tarikh yang diklik daripada 'state.days'
+    const dayData = state.days.find(d => d.date === tile.dataset.date);
+
+    // Jika status adalah 'red' (Penuh), halang pemilihan dan beri amaran
+    if (dayData && dayData.status === 'red') {
+      toastWarn('Bilik ini telah penuh pada tarikh tersebut.');
+      return; // Hentikan fungsi daripada meneruskan pemilihan
+    }
+    // --- TAMAT PENAMBAHBAIKAN ---
+
     if(state.rangeMode){
       const clickedDate = tile.dataset.date;
       if(!state.range.from){ state.range.from = clickedDate; toastInfo('Tarikh mula dipilih'); }
