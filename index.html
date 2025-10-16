@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
   <title>eROM@AG — Tempahan Bilik • PPD Alor Gajah</title>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -59,7 +59,7 @@
     #ovSummaryList{columns:3; column-gap:20px}
     @media (max-width:900px){ #ovSummaryList{columns:1} }
     @media (max-width:960px){ .toolbar{grid-template-columns:1fr 1fr} }
-    /* Admin: kunci paparan */
+    /* Admin lock */
     #adminLoginBox{display:block}
     #adminPanel{display:none}
   </style>
@@ -212,7 +212,7 @@
     <!-- Tab: Pentadbir -->
     <section id="tabAdmin" class="tabpane">
       <div class="card">
-        <!-- Login sahaja pada awal -->
+        <!-- Login dahulu -->
         <div id="adminLoginBox">
           <div class="row" style="justify-content:space-between">
             <div style="font-weight:600">Panel Pentadbir</div>
@@ -223,7 +223,7 @@
           </div>
         </div>
 
-        <!-- Panel admin penuh, dipaparkan selepas login -->
+        <!-- Panel admin selepas login -->
         <div id="adminPanel">
           <div class="row" style="justify-content:space-between">
             <div style="font-weight:600">Panel Pentadbir</div>
@@ -249,22 +249,45 @@
 
 <script>
 (function(){
-  // URL Web App GAS anda
+  // ===== KONFIGURASI API =====
   const API_BASE = 'https://script.google.com/macros/s/AKfycbwnDjQu7YIzMKVK1gh1G2mJffxfhxsKBVQZB9ESngZ5xzX3ZubQLYAiw-odJC3KmebM/exec';
 
+  // ===== NOTIFIKASI PUSAT =====
+  const Toast = Swal.mixin({ toast:true, position:'top', showConfirmButton:false, timer:2200, timerProgressBar:true });
+  function toastOk(msg){ Toast.fire({ icon:'success', title: msg }); }
+  function toastInfo(msg){ Toast.fire({ icon:'info', title: msg }); }
+  function toastWarn(msg){ Toast.fire({ icon:'warning', title: msg }); }
+  function toastErr(msg){ Toast.fire({ icon:'error', title: msg }); }
+  function modalLoading(title='Memproses...'){ Swal.fire({ title, allowOutsideClick:false, didOpen:()=>Swal.showLoading() }); }
+  function modalClose(){ Swal.close(); }
+  function modalError(title, text){ Swal.fire(title||'Ralat', text||'Terjadi ralat yang tidak dijangka.', 'error'); }
+  async function modalConfirm(title, text){ const r=await Swal.fire({ title, text, icon:'question', showCancelButton:true, confirmButtonText:'Teruskan', cancelButtonText:'Batal' }); return r.isConfirmed; }
+
+  // ===== API WRAPPER =====
   async function apiGet(action, params={}) {
     const q = new URLSearchParams({ action, ...params });
-    const res = await fetch(`${API_BASE}?${q.toString()}`, { method: 'GET' });
-    return res.ok ? res.json() : null;
+    const url = `${API_BASE}?${q.toString()}`;
+    let res;
+    try { res = await fetch(url, { method: 'GET' }); }
+    catch(e){ throw new Error('Tidak dapat berhubung ke pelayan. Semak internet atau URL Web App.'); }
+    if(!res.ok) throw new Error('Pelayan mengembalikan status tidak sah.');
+    const data = await res.json();
+    if(data && data.ok===false) throw new Error(data.error || 'Permintaan gagal.');
+    return data;
   }
   async function apiPost(action, bodyObj={}) {
-    const res = await fetch(API_BASE, { method: 'POST', body: JSON.stringify({ action, ...bodyObj }) });
-    return res.ok ? res.json() : null;
+    let res;
+    try { res = await fetch(API_BASE, { method: 'POST', body: JSON.stringify({ action, ...bodyObj }) }); }
+    catch(e){ throw new Error('Tidak dapat berhubung ke pelayan.'); }
+    if(!res.ok) throw new Error('Pelayan mengembalikan status tidak sah.');
+    const data = await res.json();
+    if(data && data.ok===false) throw new Error(data.error || 'Permintaan gagal.');
+    return data;
   }
 
   const $ = (id) => document.getElementById(id);
 
-  // Nama ikut sektor (boleh ubah)
+  // ===== Data Statik: Nama mengikut Sektor =====
   const NAMA_MENGIKUT_SEKTOR = {
     "Pengurusan Tertinggi": ["Tuan Haji Ab Malek Bin Kasim (B.K.T)","En. Azhar Bin Md Nor (B.C.M)","En. Abd Jabar Bin Md Yusup (P.J.K)","En. Muhammad Hamka Bin Dollah","En. Bashir Bin Abu Bakar"],
     "School Improvement Partner (SIP+)": ["En. Amran Bin Abdul Sukor","En. Abd. Razak Bin Adam","Pn. Rafidah Binti Abd Rahim"],
@@ -277,11 +300,14 @@
     "Sektor Pengurusan": ["Pn. Asmalaili Binti Ahmad Sanusi","Pn. Fahizah Binti Mohd Yusoff","Cik Nurul Jannah Binti Mohd Nasir","Pn. Nor Fizana Binti Md Idris","Pn. Nurul Ain Binti Mohd Zaini","Pn. Intan Liyana Binti Khamis","Pn. Habsah Binti Maidin","En. Md Zaki Zabani Bin Mohd Nor","Pn. Faizzah Binti Zulkefli","En. Mustafa Bin Musa","En. Rozamni Bin Muhamad","Pn. Katijah Binti Mohd Ali","En. Zasmeini Bin Zaimun","Pn. Suzanawati Binti Mohd Said","Pn. Kamsiah Binti Hashim","Pn. Hartiniwatie Binti Abang","En. Azharul Nizam Bin Othmawi","Pn. Rosedah Binti Muhamad","Pn. Noor 'Izzati Binti Johari","En. Mohd Arifin Bin Kamarudin","Pn. Siti Rajunah Binti Ab. Rahman","Pn. Fairus Binti Zainal","En. Hanizah Binti Minhat","Cik Siti Aishah Binti Md Hassan","Cik Nurain Nabihah Binti Nasaruddin","En. Mohd Fauzi Bin Mohamed Ali","En. Muhammad Nasiruddin Bin Muei","En. Muhammad Fadhli Mustaqim Bin Mazlan","En. Muhammad Afiq Bin Yang Rosdi","Pn. Haslina Binti Beeran Kutty"]
   };
 
-  // State
+  // ===== STATE =====
   let state = { isAdmin:false, year:null, month:null, room:'', days:[], selectedDate:null, range:{from:null,to:null}, rangeMode:false };
   let ov = { year:null, month:null, days:[], view:'calendar' };
   let ALL_ROOMS = [];
-  let ADMIN_PASSWORD = ''; // tidak auto-login untuk elak paparan terbuka
+  let ADMIN_PASSWORD = ''; // tidak auto-login
+
+  // Global guard untuk error tak ditangkap
+  window.addEventListener('unhandledrejection', e => { modalClose(); toastErr(e.reason?.message || 'Ralat tidak dijangka.'); });
 
   window.addEventListener('load', bootstrap);
 
@@ -291,23 +317,28 @@
     ov.year = now.getFullYear(); ov.month = now.getMonth()+1;
 
     setupUI();
-    const boot = await apiGet('init');
-    if (!boot || !boot.ok) { return Swal.fire('Ralat', 'Gagal memuat data asas aplikasi.', 'error'); }
-    ALL_ROOMS = boot.rooms || [];
-    hydrateSelect($('roomSelect'), ['Sila Pilih Bilik', ...ALL_ROOMS], true);
-    hydrateSelect($('category'), boot.categories || []);
-    hydrateSelect($('sektor'), ['— Pilih Sektor —', ...(boot.sektor||[])], true);
-    hydrateSelect($('adminRoom'), ['Sila Pilih Bilik', ...ALL_ROOMS], true);
 
-    // Sentiasa mula dalam keadaan terkunci (tiada auto-unlock dari localStorage)
-    lockAdmin();
-
-    populateNamaOptions();
-    toggleCalendarHint();
-    await loadOverview();
+    modalLoading('Memuat data awal...');
+    try{
+      const boot = await apiGet('init');
+      ALL_ROOMS = boot.rooms || [];
+      hydrateSelect($('roomSelect'), ['Sila Pilih Bilik', ...ALL_ROOMS], true);
+      hydrateSelect($('category'), boot.categories || []);
+      hydrateSelect($('sektor'), ['— Pilih Sektor —', ...(boot.sektor||[])], true);
+      hydrateSelect($('adminRoom'), ['Sila Pilih Bilik', ...ALL_ROOMS], true);
+      lockAdmin(); // sentiasa mula terkunci
+      populateNamaOptions();
+      toggleCalendarHint();
+      await loadOverview(true);
+      modalClose();
+      toastOk('Aplikasi sedia digunakan');
+    }catch(err){
+      modalClose();
+      modalError('Gagal memuat', err.message);
+    }
   }
 
-  /* UI asas */
+  // ===== UI & EVENT =====
   function setupUI(){
     $('monthLabel').textContent = formatMonthLabel(state.year, state.month);
     $('ovMonthLabel').textContent = formatMonthLabel(ov.year, ov.month);
@@ -317,7 +348,7 @@
     $('tabAdminBtn').addEventListener('click', ()=> switchTab('admin'));
 
     $('roomSelect').addEventListener('change', onRoomSelectChange);
-    $('btnRefresh').addEventListener('click', resetUI);
+    $('btnRefresh').addEventListener('click', ()=>{ resetUI(); toastInfo('Antara muka ditetapkan semula'); });
     $('btnBook').addEventListener('click', onBook);
     $('pickedDate').addEventListener('change', onPickedDateChange);
     $('toggleRangeOff').addEventListener('click', ()=>setRangeMode(false));
@@ -327,8 +358,8 @@
     $('grid').addEventListener('click', onGridClick);
     $('sektor').addEventListener('change', populateNamaOptions);
 
-    setupMonthNavigator({ stateObj: state, prevBtn:'btnPrev', nextBtn:'btnNext', label:'monthLabel', onShift: ()=>{ if(state.room) refreshMonth(); } });
-    setupMonthNavigator({ stateObj: ov, prevBtn:'ovPrev', nextBtn:'ovNext', label:'ovMonthLabel', onShift: loadOverview });
+    setupMonthNavigator({ stateObj: state, prevBtn:'btnPrev', nextBtn:'btnNext', label:'monthLabel', onShift: ()=>{ if(state.room) refreshMonth(true); } });
+    setupMonthNavigator({ stateObj: ov, prevBtn:'ovPrev', nextBtn:'ovNext', label:'ovMonthLabel', onShift: ()=>loadOverview(true) });
 
     $('btnViewCalendar').addEventListener('click', ()=>switchOverviewView('calendar'));
     $('btnViewTable').addEventListener('click', ()=>switchOverviewView('table'));
@@ -339,8 +370,7 @@
   }
 
   function lockAdmin(){
-    state.isAdmin = false;
-    ADMIN_PASSWORD = '';
+    state.isAdmin = false; ADMIN_PASSWORD = '';
     $('adminLoginBox').style.display = 'block';
     $('adminPanel').style.display = 'none';
     $('adminWho').textContent = 'Belum log masuk';
@@ -361,20 +391,23 @@
       showCancelButton: true
     });
     if (!pw) return;
-    const chk = await apiGet('adminCheck', { adminPassword: pw });
-    if (chk && chk.ok && chk.isAdmin) {
-      ADMIN_PASSWORD = pw; // tidak simpan ke localStorage
-      unlockAdmin();
-      Swal.fire('Berjaya', 'Akses pentadbir diaktifkan.', 'success');
-    } else {
-      Swal.fire('Ralat', 'Kata laluan salah.', 'error');
-    }
+    modalLoading('Mengesahkan akses...');
+    try{
+      const chk = await apiGet('adminCheck', { adminPassword: pw });
+      modalClose();
+      if (chk && chk.ok && chk.isAdmin) {
+        ADMIN_PASSWORD = pw; unlockAdmin();
+        toastOk('Akses pentadbir diaktifkan');
+      } else {
+        toastErr('Kata laluan salah');
+      }
+    }catch(err){ modalClose(); modalError('Gagal log masuk', err.message); }
   }
 
   function switchTab(name){
     const map={tempahan:{btn:'tabTempahanBtn',pane:'tabTempahan'},kalendar:{btn:'tabKalendarBtn',pane:'tabKalendar'},admin:{btn:'tabAdminBtn',pane:'tabAdmin'}};
     Object.keys(map).forEach(k=>{ const {btn,pane}=map[k]; $(btn).classList.toggle('active',k===name); $(pane).classList.toggle('active',k===name); });
-    if(name==='kalendar' && (!ov.days || !ov.days.length)){ loadOverview(); }
+    if(name==='kalendar' && (!ov.days || !ov.days.length)){ loadOverview(true); }
   }
 
   function setupMonthNavigator({ stateObj, prevBtn, nextBtn, label, onShift }) {
@@ -408,7 +441,7 @@
     state.room = $('roomSelect').value;
     resetBookingForm(false);
     toggleCalendarHint();
-    if(state.room) { refreshMonth(); } else { $('grid').innerHTML=''; }
+    if(state.room) { refreshMonth(true); } else { $('grid').innerHTML=''; }
   }
   function resetUI(){
     const now=new Date(); state.year=now.getFullYear(); state.month=now.getMonth()+1; $('monthLabel').textContent=formatMonthLabel(state.year,state.month);
@@ -416,7 +449,7 @@
     $('roomSelect').value=''; state.room=''; toggleCalendarHint();
     resetBookingForm(true);
     $('adminRoom').value=''; $('adminList').innerHTML='';
-    lockAdmin(); // keluar dari admin bila reset
+    lockAdmin();
     switchTab('tempahan'); window.scrollTo({top:0,behavior:'smooth'});
   }
   function resetBookingForm(clearFields){
@@ -444,13 +477,19 @@
     highlightRangeTiles(); updateRangeCounter();
   }
 
-  /* Kalendar bilik */
-  async function refreshMonth(){
+  // ===== KALENDAR BILIK =====
+  async function refreshMonth(showLoading){
     if(!state.room){ toggleCalendarHint(); return; }
-    const res = await apiGet('getMonthView', { room: state.room, year: state.year, month: state.month });
-    if(!res||!res.ok){ return Swal.fire('Ralat', res?.error || 'Gagal memuat data kalendar', 'error'); }
-    state.days=res.days||[];
-    renderCalendar(); highlightSelectedTile(); highlightRangeTiles(); updateRangeCounter();
+    if(showLoading) modalLoading('Memuat kalendar...');
+    try{
+      const res = await apiGet('getMonthView', { room: state.room, year: state.year, month: state.month });
+      state.days=res.days||[];
+      renderCalendar(); highlightSelectedTile(); highlightRangeTiles(); updateRangeCounter();
+      if(showLoading) { modalClose(); toastOk('Kalendar dikemas kini'); }
+    }catch(err){
+      if(showLoading) modalClose();
+      modalError('Gagal memuat kalendar', err.message);
+    }
   }
   function renderCalendar(){
     const grid=$('grid'); grid.innerHTML='';
@@ -494,11 +533,12 @@
     if(!tile || tile.classList.contains('disabled')) return;
     if(state.rangeMode){
       const clickedDate = tile.dataset.date;
-      if(!state.range.from){ state.range.from = clickedDate; }
+      if(!state.range.from){ state.range.from = clickedDate; toastInfo('Tarikh mula dipilih'); }
       else if(!state.range.to){
         if(clickedDate < state.range.from){ state.range.to = state.range.from; state.range.from = clickedDate; }
         else { state.range.to = clickedDate; }
-      } else { state.range = {from: clickedDate, to: null}; }
+        toastOk('Julat tarikh ditetapkan');
+      } else { state.range = {from: clickedDate, to: null}; toastInfo('Pilih tarikh akhir'); }
       $('fromDate').value = state.range.from || '';
       $('toDate').value = state.range.to || '';
       highlightRangeTiles(); updateRangeCounter(); onRangeChange();
@@ -507,6 +547,7 @@
       tile.classList.add('sel');
       state.selectedDate=tile.dataset.date;
       $('pickedDate').value=state.selectedDate;
+      toastInfo(`Tarikh dipilih: ${state.selectedDate}`);
     }
   }
   function onPickedDateChange(){
@@ -514,7 +555,7 @@
     if (!state.selectedDate) { highlightSelectedTile(); return; }
     const day = state.days.find(x=>x.date===state.selectedDate);
     if(day && day.status==='red'){
-      Swal.fire('Makluman', 'Tarikh ini penuh. Sila pilih tarikh lain.', 'info');
+      toastWarn('Tarikh ini penuh. Pilih tarikh lain.');
       $('pickedDate').value=''; state.selectedDate=null;
     }
     highlightSelectedTile();
@@ -536,59 +577,72 @@
   function onRangeChange(){
     state.range.from=$('fromDate').value||null; state.range.to=$('toDate').value||null;
     if(state.range.from && state.range.to && state.range.from > state.range.to){
-      Swal.fire('Peringatan','Tarikh Dari mestilah sebelum atau sama dengan Tarikh Hingga.','warning');
+      toastWarn('Tarikh Dari mesti sebelum atau sama dengan Tarikh Hingga');
     }
     highlightRangeTiles(); updateRangeCounter();
   }
   function updateRangeCounter(){ if(!state.rangeMode){ $('rangeCounter').textContent=''; return;} const n=countWorkingDaysInRange(state.range.from,state.range.to); $('rangeCounter').textContent=`Akan ditempah: ${n} hari bekerja`; }
 
-  /* Tempahan */
+  // ===== TEMPAHAN =====
   async function onBook(){
     const inputs = {
       room: $('roomSelect').value, start: $('startTime').value, end: $('endTime').value,
       category: $('category').value, note: $('note').value.trim(), nama: $('nama').value.trim(), sektor: $('sektor').value
     };
-    if(!inputs.room){ markInvalid($('roomSelect')); return Swal.fire('Peringatan','Sila pilih bilik.','warning'); }
-    if(!inputs.start){ markInvalid($('startTime')); return Swal.fire('Peringatan','Sila pilih masa mula.','warning'); }
-    if(!inputs.end){ markInvalid($('endTime')); return Swal.fire('Peringatan','Sila pilih masa tamat.','warning'); }
-    if(!inputs.category){ markInvalid($('category')); return Swal.fire('Peringatan','Sila pilih kategori.','warning'); }
-    if(!inputs.note){ markInvalid($('note')); return Swal.fire('Peringatan','Sila isi Tujuan / Ringkasan.','warning'); }
-    if(!inputs.sektor){ markInvalid($('sektor')); return Swal.fire('Peringatan','Sila pilih sektor.','warning'); }
-    if(!inputs.nama){ markInvalid($('nama')); return Swal.fire('Peringatan','Sila pilih nama penempah.','warning'); }
+    if(!inputs.room){ markInvalid($('roomSelect')); return toastWarn('Sila pilih bilik'); }
+    if(!inputs.start){ markInvalid($('startTime')); return toastWarn('Sila pilih masa mula'); }
+    if(!inputs.end){ markInvalid($('endTime')); return toastWarn('Sila pilih masa tamat'); }
+    if(!inputs.category){ markInvalid($('category')); return toastWarn('Sila pilih kategori'); }
+    if(!inputs.note){ markInvalid($('note')); return toastWarn('Isi tujuan / ringkasan'); }
+    if(!inputs.sektor){ markInvalid($('sektor')); return toastWarn('Sila pilih sektor'); }
+    if(!inputs.nama){ markInvalid($('nama')); return toastWarn('Sila pilih nama penempah'); }
+
+    // Pengesahan sebelum hantar
+    const ok = await modalConfirm('Sahkan tempahan?', state.rangeMode ? 'Anda akan merekod tempahan berturut mengikut julat tarikh.' : 'Anda akan merekod satu tempahan pada tarikh dipilih.');
+    if(!ok) return;
 
     $('btnBook').disabled = true;
+    modalLoading('Menyimpan tempahan...');
     try {
       let res;
       if (state.rangeMode) {
         inputs.startDate = $('fromDate').value;
         inputs.endDate = $('toDate').value;
-        if (!inputs.startDate) { markInvalid($('fromDate')); throw new Error('Sila isi "Tarikh Dari".'); }
-        if (!inputs.endDate) { markInvalid($('toDate')); throw new Error('Sila isi "Tarikh Hingga".'); }
+        if (!inputs.startDate){ modalClose(); markInvalid($('fromDate')); return toastWarn('Isi Tarikh Dari'); }
+        if (!inputs.endDate){ modalClose(); markInvalid($('toDate')); return toastWarn('Isi Tarikh Hingga'); }
         res = await apiPost('createBookingRange', inputs);
-        if (!res || !res.ok) throw new Error(res?.error || 'Gagal merekod tempahan julat.');
-        await Swal.fire({ icon:'success', title:`Disimpan: ${res.savedCount||0} hari.`, timer:1500, position:'top', showConfirmButton:false });
+        modalClose();
+        toastOk(`Disimpan: ${res.savedCount||0} hari`);
+        if(res.skipped?.length) toastInfo(`Diabaikan: ${res.skipped.length} hari tidak sah`);
       } else {
         inputs.date = $('pickedDate').value;
-        if (!inputs.date) { markInvalid($('pickedDate')); throw new Error('Sila pilih "Tarikh Dipilih".'); }
-        res = await apiPost('createBooking', inputs);
-        if (!res || !res.ok) throw new Error(res?.error || 'Gagal merekod tempahan.');
-        await Swal.fire({ icon:'success', title:'Tempahan disimpan!', timer:1500, position:'top', showConfirmButton:false });
+        if (!inputs.date){ modalClose(); markInvalid($('pickedDate')); return toastWarn('Pilih Tarikh Dipilih'); }
+        await apiPost('createBooking', inputs);
+        modalClose();
+        toastOk('Tempahan disimpan');
       }
-      if(state.room) await refreshMonth();
-      await loadOverview();
+      if(state.room) await refreshMonth(false);
+      await loadOverview(false);
     } catch(err){
-      await Swal.fire('Ralat', err?.message || 'Proses tempahan gagal.', 'error');
+      modalClose();
+      modalError('Gagal menyimpan', err.message);
     } finally {
       $('btnBook').disabled = false;
     }
   }
 
-  /* Overview */
-  async function loadOverview(){
-    const res = await apiGet('getMonthRoomsOverview', { year: ov.year, month: ov.month });
-    if(!res || !res.ok){ return Swal.fire('Ralat', res?.error || 'Gagal memuat rumusan', 'error'); }
-    ov.days = Array.isArray(res.days) ? res.days : [];
-    renderOverview();
+  // ===== OVERVIEW =====
+  async function loadOverview(showLoading){
+    try{
+      if(showLoading) modalLoading('Memuat rumusan...');
+      const res = await apiGet('getMonthRoomsOverview', { year: ov.year, month: ov.month });
+      ov.days = Array.isArray(res.days) ? res.days : [];
+      renderOverview();
+      if(showLoading){ modalClose(); toastOk('Rumusan dikemas kini'); }
+    }catch(err){
+      if(showLoading) modalClose();
+      modalError('Gagal memuat rumusan', err.message);
+    }
   }
   function switchOverviewView(view){
     ov.view = (view === 'table') ? 'table' : 'calendar';
@@ -657,30 +711,35 @@
     tbody.appendChild(frag);
   }
 
-  /* Admin */
+  // ===== ADMIN =====
   async function loadAdminUpcoming(){
     const room = $('adminRoom').value;
-    if(!state.isAdmin){ return Swal.fire('Akses ditolak','Sila log masuk pentadbir dahulu.','warning'); }
+    if(!state.isAdmin){ return toastWarn('Log masuk pentadbir dahulu'); }
     if(!room){ $('adminList').innerHTML='<div class="small">Sila pilih bilik untuk memuatkan senarai tempahan akan datang.</div>'; return; }
     $('adminList').innerHTML='<div class="small">Memuatkan data...</div>';
-    const res = await apiGet('listUpcomingBookings', { room, adminPassword: ADMIN_PASSWORD });
-    if(!res || !res.ok){ $('adminList').innerHTML='<div class="small" style="color:#dc2626">Gagal memuatkan data.</div>'; return; }
-    const items = res.items || [];
-    if(!items.length){ $('adminList').innerHTML='<div class="small">Tiada tempahan akan datang untuk bilik ini.</div>'; return; }
-    const html = ['<table><thead><tr><th style="width:34px"><input type="checkbox" onchange="toggleAllCheckboxes(this.checked)"></th><th style="width:120px">Tarikh</th><th style="width:120px">Masa</th><th>Bilik</th><th style="width:160px">Kategori</th><th>Tujuan</th><th style="width:160px">Penempah</th></tr></thead><tbody>'];
-    for(const it of items){
-      html.push(`<tr>
-        <td><input type="checkbox" class="chkCancel" data-id="${it.id}"></td>
-        <td>${it.date}</td>
-        <td>${(it.start||'')+'–'+(it.end||'')}</td>
-        <td>${it.room||''}</td>
-        <td>${it.category||''}</td>
-        <td>${escapeHtml(it.note||'')}</td>
-        <td>${escapeHtml(it.nama||'')}<div class="small">${it.sektor||''}</div></td>
-      </tr>`);
+    try{
+      const res = await apiGet('listUpcomingBookings', { room, adminPassword: ADMIN_PASSWORD });
+      const items = res.items || [];
+      if(!items.length){ $('adminList').innerHTML='<div class="small">Tiada tempahan akan datang untuk bilik ini.</div>'; return; }
+      const html = ['<table><thead><tr><th style="width:34px"><input type="checkbox" onchange="toggleAllCheckboxes(this.checked)"></th><th style="width:120px">Tarikh</th><th style="width:120px">Masa</th><th>Bilik</th><th style="width:160px">Kategori</th><th>Tujuan</th><th style="width:160px">Penempah</th></tr></thead><tbody>'];
+      for(const it of items){
+        html.push(`<tr>
+          <td><input type="checkbox" class="chkCancel" data-id="${it.id}"></td>
+          <td>${it.date}</td>
+          <td>${(it.start||'')+'–'+(it.end||'')}</td>
+          <td>${it.room||''}</td>
+          <td>${it.category||''}</td>
+          <td>${escapeHtml(it.note||'')}</td>
+          <td>${escapeHtml(it.nama||'')}<div class="small">${it.sektor||''}</div></td>
+        </tr>`);
+      }
+      html.push('</tbody></table>');
+      $('adminList').innerHTML = html.join('');
+      toastOk('Senarai dimuat');
+    }catch(err){
+      $('adminList').innerHTML='<div class="small" style="color:#dc2626">Gagal memuatkan data.</div>';
+      modalError('Ralat memuat senarai', err.message);
     }
-    html.push('</tbody></table>');
-    $('adminList').innerHTML = html.join('');
   }
 
   window.toggleAllCheckboxes = (checked) => {
@@ -688,21 +747,37 @@
   };
 
   async function onBulkCancel(){
-    if(!state.isAdmin){ return Swal.fire('Akses ditolak','Sila log masuk pentadbir dahulu.','warning'); }
+    if(!state.isAdmin){ return toastWarn('Log masuk pentadbir dahulu'); }
     const checks=[...document.querySelectorAll('.chkCancel:checked')];
-    if(!checks.length) return Swal.fire('Makluman','Tiada tempahan dipilih untuk dibatalkan.','info');
+    if(!checks.length) return toastInfo('Tiada tempahan dipilih untuk dibatalkan');
     const ids = checks.map(x=>x.dataset.id);
-    const { value: reason } = await Swal.fire({ title: 'Sebab Pembatalan?', input: 'text', inputPlaceholder:'Contoh: Pembetulan jadual atau pertindihan acara', showCancelButton: true, inputValidator: (v) => !v && 'Sebab pembatalan wajib diisi.' });
+    const { value: reason } = await Swal.fire({
+      title: 'Sebab Pembatalan?',
+      input: 'text',
+      inputPlaceholder:'Contoh: Pembetulan jadual atau pertindihan acara',
+      showCancelButton: true,
+      inputValidator: (v) => !v && 'Sebab pembatalan wajib diisi.'
+    });
     if (!reason) return;
-    const res = await apiPost('batalTempahanBulk', { ids, reason, adminPassword: ADMIN_PASSWORD });
-    if(!res || !res.ok) return Swal.fire('Ralat', res?.error || 'Gagal melaksanakan pembatalan.', 'error');
-    await Swal.fire('Selesai', `Berjaya dibatalkan: ${res.updated} tempahan.`, 'success');
-    await loadAdminUpcoming();
-    if(state.room) await refreshMonth();
-    await loadOverview();
+
+    const ok = await modalConfirm('Sahkan pembatalan?', `Anda akan membatalkan ${ids.length} tempahan terpilih.`);
+    if(!ok) return;
+
+    modalLoading('Melaksanakan pembatalan...');
+    try{
+      const res = await apiPost('batalTempahanBulk', { ids, reason, adminPassword: ADMIN_PASSWORD });
+      modalClose();
+      toastOk(`Dibatalkan: ${res.updated} tempahan`);
+      await loadAdminUpcoming();
+      if(state.room) await refreshMonth(false);
+      await loadOverview(false);
+    }catch(err){
+      modalClose();
+      modalError('Gagal membatalkan', err.message);
+    }
   }
 
-  /* Utiliti */
+  // ===== UTILITI =====
   function truncate(s, n){ return s?.length>n ? s.slice(0,n-1)+'…' : s; }
   function escapeHtml(str) { return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
   function toYMDLocal(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
