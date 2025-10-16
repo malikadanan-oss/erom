@@ -169,7 +169,15 @@
 
     <section id="tabKalendar" class="tabpane">
       <div class="card toolbar">
-        <div class="small" style="font-weight:600">Rumusan Semua Bilik (Read-only)</div>
+        <div>
+          <div class="small" style="font-weight:600">Rumusan Semua Bilik (Read-only)</div>
+          <div style="margin-top:4px;">
+            <label class="small">Tapis Bilik:</label>
+            <select id="ovRoomFilter" style="padding:4px 8px; font-size:0.9rem; border-radius: 8px;">
+              <option value="">— Semua Bilik —</option>
+            </select>
+          </div>
+        </div>
         <div class="monthnav" style="justify-self:end">
           <button class="btn ghost" id="ovPrev">&lt; Bulan Sebelum</button>
           <div class="small" id="ovMonthLabel" style="min-width:160px;text-align:center;font-weight:600;color:#111827"></div>
@@ -297,7 +305,8 @@
 
   // ===== STATE =====
   let state = { isAdmin:false, year:null, month:null, room:'', days:[], selectedDate:null, range:{from:null,to:null}, rangeMode:false };
-  let ov = { year:null, month:null, days:[], view:'calendar' };
+  // --- PENAMBAHBAIKAN: Tambah 'filterRoom' untuk menjejak bilik yang ditapis ---
+  let ov = { year:null, month:null, days:[], view:'calendar', filterRoom: '' };
   let ALL_ROOMS = [];
   let ADMIN_PASSWORD = ''; // tidak auto-login
 
@@ -321,6 +330,8 @@
       hydrateSelect($('category'), boot.categories || []);
       hydrateSelect($('sektor'), ['— Pilih Sektor —', ...(boot.sektor||[])], true);
       hydrateSelect($('adminRoom'), ['Sila Pilih Bilik', ...ALL_ROOMS], true);
+      // --- PENAMBAHBAIKAN: Panggil fungsi untuk mengisi dropdown penapis bilik ---
+      populateOvRoomFilter();
       lockAdmin(); // sentiasa mula terkunci
       populateNamaOptions();
       toggleCalendarHint();
@@ -358,6 +369,9 @@
 
     $('btnViewCalendar').addEventListener('click', ()=>switchOverviewView('calendar'));
     $('btnViewTable').addEventListener('click', ()=>switchOverviewView('table'));
+
+    // --- PENAMBAHBAIKAN: Tambah event listener untuk dropdown penapis ---
+    $('ovRoomFilter').addEventListener('change', onOvRoomFilterChange);
 
     $('btnAdminLogin').addEventListener('click', onAdminLogin);
     $('btnAdminLoad').addEventListener('click', loadAdminUpcoming);
@@ -431,6 +445,19 @@
     namaSel.disabled=false; namaSel.appendChild(new Option('— Pilih nama —','')); list.forEach(n=> namaSel.appendChild(new Option(n,n)));
   }
   function toggleCalendarHint(){ $('noRoomHint').style.display = state.room ? 'none' : 'block'; }
+
+  // --- PENAMBAHBAIKAN: Fungsi baharu untuk mengisi dropdown penapis bilik di tab rumusan ---
+  function populateOvRoomFilter(){
+    const sel = $('ovRoomFilter');
+    sel.innerHTML = '<option value="">— Semua Bilik —</option>';
+    ALL_ROOMS.forEach(room => sel.appendChild(new Option(room, room)));
+  }
+
+  // --- PENAMBAHBAIKAN: Fungsi baharu untuk mengendalikan perubahan pada penapis bilik ---
+  function onOvRoomFilterChange() {
+    ov.filterRoom = $('ovRoomFilter').value;
+    renderOvTable(); // Lukis semula jadual dengan data yang ditapis
+  }
 
   function onRoomSelectChange() {
     state.room = $('roomSelect').value;
@@ -527,7 +554,6 @@
     const tile = ev.target.closest('.tile');
     if(!tile || tile.classList.contains('disabled')) return;
 
-    // --- MULA PENAMBAHBAIKAN ---
     // Dapatkan data untuk tarikh yang diklik daripada 'state.days'
     const dayData = state.days.find(d => d.date === tile.dataset.date);
 
@@ -536,7 +562,6 @@
       toastWarn('Bilik ini telah penuh pada tarikh tersebut.');
       return; // Hentikan fungsi daripada meneruskan pemilihan
     }
-    // --- TAMAT PENAMBAHBAIKAN ---
 
     if(state.rangeMode){
       const clickedDate = tile.dataset.date;
@@ -708,9 +733,16 @@
     const tbody = $('ovTableBody'); tbody.innerHTML='';
     const rows = [];
     (ov.days||[]).forEach(d=>{ (d.rooms||[]).forEach(r=> rows.push({date:d.date, room:r.room, status:r.status})); });
-    rows.sort((a,b)=> a.date.localeCompare(b.date) || (a.status === 'red' ? -1 : 1) || a.room.localeCompare(b.room, 'ms'));
+
+    // --- PENAMBAHBAIKAN: Logik untuk menapis jadual mengikut bilik yang dipilih ---
+    const filteredRows = ov.filterRoom
+      ? rows.filter(r => r.room === ov.filterRoom)
+      : rows;
+
+    filteredRows.sort((a,b)=> a.date.localeCompare(b.date) || (a.status === 'red' ? -1 : 1) || a.room.localeCompare(b.room, 'ms'));
+    
     const frag=document.createDocumentFragment();
-    rows.forEach(x=>{
+    filteredRows.forEach(x=>{
       const tr=document.createElement('tr');
       tr.innerHTML = `<td>${x.date}</td><td>${x.room}</td><td><span class="tag ${x.status==='red'?'red':'orange'}">${x.status==='red'?'Penuh':'Separa Penuh'}</span></td>`;
       frag.appendChild(tr);
